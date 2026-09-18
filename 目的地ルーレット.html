@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>桃鉄風 目的地ルーレット</title>
+  <style>
+    body {
+      font-family: 'Hiragino Kaku Gothic ProN', 'メイリオ', sans-serif;
+      text-align: center;
+      padding: 30px;
+      background-color: #fce4ec;
+    }
+    .card {
+      background: white;
+      max-width: 500px;
+      margin: 0 auto;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+      border: 4px solid #ff4081;
+    }
+    h1 {
+      color: #d81b60;
+      font-size: 1.8rem;
+      margin-top: 0;
+    }
+    #result {
+      font-size: 3rem;
+      font-weight: bold;
+      color: #c2185b;
+      margin: 30px 0;
+      height: 70px;
+      line-height: 70px;
+      background: #fff8fa;
+      border-radius: 8px;
+      border: 2px dashed #ff80ab;
+    }
+    button {
+      font-size: 1.3rem;
+      font-weight: bold;
+      padding: 14px 40px;
+      background-color: #ff4081;
+      color: white;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(255, 64, 129, 0.4);
+      transition: transform 0.1s;
+    }
+    button:active {
+      transform: scale(0.95);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h1>札幌編 目的地ルーレット</h1>
+    <div id="result">？？？</div>
+    <button onclick="spin()">ルーレットを回す！</button>
+  </div>
+
+  <script>
+    const destinations = [
+      "宮の沢", "発寒南", "琴似", "二十四軒", "西28丁目", 
+      "円山公園", "西18丁目", "西11丁目", "大通", "バスセンター前", 
+      "菊水", "東札幌", "白石", "南郷7丁目", "南郷13丁目", 
+      "南郷18丁目", "大谷地", "ひばりが丘", "新さっぽろ", "麻生", 
+      "北34条", "北24条", "北18条", "北12条", "さっぽろ", 
+      "すすきの", "中島公園", "幌平橋", "中の島", "平岸", 
+      "南平岸", "澄川", "自衛隊前", "真駒内", "栄町", 
+      "新道東", "元町", "環状通東", "東区役所前", "北13条東", 
+      "豊水すすきの", "学園前", "豊平公園", "美園", "月寒中央", 
+      "福住"
+    ];
+
+    let timer;
+    let audioCtx = null;
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+    }
+
+    // 桃鉄風：ルーレット回転中のピピ音（矩形波でゲーム音らしさを向上）
+    function playTickSound() {
+      if (!audioCtx) return;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      
+      osc.type = 'square'; // レトロゲーム風の矩形波
+      osc.frequency.setValueAtTime(1046.50, audioCtx.currentTime); // C6（高めの音）
+      
+      gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.04);
+      
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.04);
+    }
+
+    // 桃鉄風：目的地決定時の「パパーン！」サウンド
+    function playFanfareSound() {
+      if (!audioCtx) return;
+      const now = audioCtx.currentTime;
+
+      // 短い2段階のファンファーレ（ドッ・チャーン！）
+      const playNote = (freq, startTime, duration, volume = 0.1) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(freq, startTime);
+        gain.gain.setValueAtTime(volume, startTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(startTime);
+        osc.stop(startTime + duration);
+      };
+
+      // 1音目（予備音）
+      playNote(783.99, now, 0.08); // G5
+      
+      // 2音目（和音で豪華に決定音）
+      playNote(1046.50, now + 0.09, 0.5, 0.12); // C6
+      playNote(1318.51, now + 0.09, 0.5, 0.12); // E6
+      playNote(1567.98, now + 0.09, 0.5, 0.12); // G6
+    }
+
+    function spin() {
+      initAudio();
+      
+      let count = 0;
+      const maxCount = 30; // 回転数
+      let speed = 50; // 初期速度 (ms)
+      
+      clearInterval(timer);
+
+      const run = () => {
+        const randomIndex = Math.floor(Math.random() * destinations.length);
+        document.getElementById("result").innerText = destinations[randomIndex];
+        playTickSound();
+        count++;
+
+        if (count < maxCount) {
+          // 後半にかけて徐々に減速させる演出
+          if (count > maxCount - 10) {
+            speed += 15;
+          }
+          timer = setTimeout(run, speed);
+        } else {
+          playFanfareSound();
+        }
+      };
+
+      run();
+    }
+  </script>
+
+</body>
+</html>
